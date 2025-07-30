@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Voice Patient Registration</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #eef3f8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 50px;
+    }
+    .form-box {
+      background-color: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      max-width: 500px;
+      width: 100%;
+    }
+    label {
+      display: block;
+      font-weight: bold;
+      margin-top: 15px;
+    }
+    input[type="text"], input[type="email"], input[type="tel"], input[type="password"], select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    .gender-options {
+      margin-top: 10px;
+      display: flex;
+      gap: 20px;
+    }
+    .gender-options label {
+      font-weight: normal;
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #status {
+      margin-top: 20px;
+      font-size: 16px;
+      color: #333;
+    }
+    .password-wrapper {
+      position: relative;
+    }
+    .password-wrapper span {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+    }
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .modal {
+      background: white;
+      padding: 20px 30px;
+      border-radius: 10px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      text-align: left;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+    .modal-buttons {
+      margin-top: 20px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    .modal-buttons button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .modal-buttons button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+
+<div class="form-box">
+  <h2>🗣 Patient Registration</h2>
+
+  <label for="language">Select Output Language</label>
+  <select id="language">
+    <option value="en-US" selected>English</option>
+    <option value="hi-IN">Hindi</option>
+    <option value="te-IN">Telugu</option>
+  </select>
+
+  <label for="name">Name</label>
+  <input type="text" id="name">
+
+  <label for="age">Age</label>
+  <input type="text" id="age">
+
+  <label>Gender</label>
+  <div class="gender-options">
+    <label><input type="radio" name="gender" value="female"> Female (f)</label>
+    <label><input type="radio" name="gender" value="male"> Male (m)</label>
+    <label><input type="radio" name="gender" value="other"> Other (o)</label>
+  </div>
+
+  <label for="email">Email</label>
+  <input type="email" id="email" placeholder="example@gmail.com">
+
+  <label for="phone">Contact Number</label>
+  <div style="display: flex; align-items: center; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; width: 100%; font-size: 1rem;">
+    <select id="country_code" name="country_code" style="width: 80px; border: none; background-color: #f0f0f0; padding: 8px 6px; font-size: 1rem; cursor: pointer; outline: none;">
+      <option value="+1">🇺🇸 +1</option>
+      <option value="+91" selected>🇮🇳 +91</option>
+      <option value="+44">🇬🇧 +44</option>
+      <option value="+81">🇯🇵 +81</option>
+      <option value="+61">🇦🇺 +61</option>
+      <option value="+86">🇨🇳 +86</option>
+      <option value="+49">🇩🇪 +49</option>
+    </select>
+    <input type="tel" id="phone" placeholder="Enter phone number" style="flex: 1; border: none; padding: 10px; outline: none;" required>
+  </div>
+
+  <label for="password">Set Password</label>
+  <div class="password-wrapper">
+    <input type="password" id="password">
+    <span onclick="togglePassword('password')">👁</span>
+  </div>
+
+  <label for="confirmPassword">Confirm Password</label>
+  <div class="password-wrapper">
+    <input type="password" id="confirmPassword">
+    <span onclick="togglePassword('confirmPassword')">👁</span>
+  </div>
+
+  <button onclick="startVoiceRegistration()">🎤 Start Voice Registration</button>
+  <button onclick="handleSubmit()">Submit</button>
+
+  <div id="status"></div>
+</div>
+
+<div id="modalOverlay" class="modal-overlay" style="display:none;">
+  <div class="modal">
+    <h3>Please confirm your details:</h3>
+    <pre id="modalContent"></pre>
+    <div class="modal-buttons">
+      <button id="btnNo">No</button>
+      <button id="btnYes">Yes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let cachedVoices = [];
+window.speechSynthesis.onvoiceschanged = () => {
+  cachedVoices = speechSynthesis.getVoices();
+};
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = SpeechRecognition ? new SpeechRecognition() : null;
+if (recognition) {
+  recognition.lang = "en-US";
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  recognition.onresult = event => processVoiceInput(event.results[0][0].transcript.trim());
+  recognition.onerror = () => speak("Sorry, I didn't catch that. Please try again.", askNextField);
+}
+
+const questions = {
+  "en-US": {
+    name: "What is your name?",
+    age: "How old are you?",
+    gender: "What is your gender? Say Female, male, or other.",
+    email: "What is your email address?",
+    contact: "What is your contact number?",
+    password: "Please set a password and make sure it should be confidential.",
+    confirmPassword: "Please confirm your password."
+  },
+  "hi-IN": {
+    name: "आपका नाम क्या है?",
+    age: "आपकी उम्र क्या है?",
+    gender: "आपका लिंग क्या है? महिलाएं, पुरुष या अन्य कहें।",
+    email: "आपका ईमेल पता क्या है?",
+    contact: "आपका संपर्क नंबर क्या है?",
+    password: "कृपया एक पासवर्ड सेट करें और अपना पासवर्ड गोपनीय रखें।",
+    confirmPassword: "कृपया अपना पासवर्ड पुष्टि करें ।"
+  },
+  "te-IN": {
+    name: "మీ పేరు తెలియచేయండి?",
+    age: "మీ వయస్సు తెలియచేయండి?",
+    gender: "మీ లింగం ఏమిటి? మహిళలు, పురుషులు లేదా ఇతరులా చెప్పండి.",
+    email: "మీ ఇమెయిల్ చిరునామా చెప్పండి?",
+    contact: "మీ ఫోన్ నంబర్ చెప్పండి?",
+    password: "దయచేసి ఒక పాస్‌వర్డ్ సెట్ చేయండి మరియు మీ పాస్‌వర్డ్‌ని గోప్యంగా ఉంచుకోండి",
+    confirmPassword: "దయచేసి మీ పాస్‌వర్డ్‌ని నిర్ధారించండి ."
+  }
+};
+
+const fields = [
+  { id: "name", type: "text", validate: v => v.trim().length > 0 },
+  { id: "age", type: "number", validate: v => !isNaN(v) && Number(v) > 0 && Number(v) < 150 },
+  { id: "gender", type: "radio", validate: () => !!getGender() },
+  { id: "email", type: "text", validate: v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) },
+  { id: "contact", type: "text", validate: v => /^\+?\d{7,15}$/.test(v.trim()) },
+  { id: "password", type: "text", validate: v => v.trim().length >= 6 && v.trim().length <= 20 },
+  { id: "confirmPassword", type: "text", validate: v => v.trim().length >= 6 && v.trim().length <= 20 }
+];
+
+let currentFieldIndex = 0;
+
+function speak(textKey, callback = () => {}) {
+  const selectedLang = document.getElementById("language").value;
+  const synth = window.speechSynthesis;
+  const msg = new SpeechSynthesisUtterance();
+  const text = questions[selectedLang]?.[textKey] || textKey;
+  msg.text = text;
+  msg.lang = selectedLang;
+  const voices = cachedVoices.length ? cachedVoices : synth.getVoices();
+  const matchedVoice = voices.find(v => v.lang === selectedLang || v.lang.startsWith(selectedLang));
+  if (matchedVoice) msg.voice = matchedVoice;
+
+  msg.onend = () => setTimeout(callback, 800);
+  if (synth.speaking) synth.cancel();
+  if (voices.length) {
+    synth.speak(msg);
+  } else {
+    synth.onvoiceschanged = () => synth.speak(msg);
+  }
+}
+
+function togglePassword(id) {
+  const input = document.getElementById(id);
+  input.type = input.type === "password" ? "text" : "password";
+}
+
+function processVoiceInput(response) {
+  response = response.replace(/\.+$/, '').trim(); // Strip trailing dots
+  const field = fields[currentFieldIndex];
+  let value = response;
+  if (field.id === "email" && !value.includes("@")) value = value.replace(/\s/g, "") + "@gmail.com";
+  if (field.id === "contact") {
+    value = "+91" + value.replace(/\D/g, "");
+    document.getElementById("phone").value = value.replace("+91", "");
+  } else if (field.type !== "radio") {
+    document.getElementById(field.id).value = value;
+  }
+  if (field.type === "radio") {
+    const val = normalizeGender(value);
+    const opts = document.getElementsByName("gender");
+    for (let opt of opts) {
+      if (opt.value === val) {
+        opt.checked = true;
+        break;
+      }
+    }
+  }
+  if (!field.validate(field.id === "gender" ? getGender() : value)) {
+    speak("Invalid input. Please try again.", askNextField);
+    return;
+  }
+  currentFieldIndex++;
+  askNextField();
+}
+
+function normalizeGender(input) {
+  const g = input.toLowerCase();
+  if (g.includes("female") || g === "f") return "female";
+  if (g.includes("male") || g === "m") return "male";
+  if (g.includes("other") || g === "o") return "other";
+  return "";
+}
+
+function getGender() {
+  const g = [...document.getElementsByName("gender")].find(r => r.checked);
+  return g ? g.value : "";
+}
+
+function askNextField() {
+  if (currentFieldIndex >= fields.length) {
+    const pw = document.getElementById("password").value;
+    const cpw = document.getElementById("confirmPassword").value;
+    if (pw !== cpw) {
+      speak("Passwords do not match. Let's confirm again.", () => {
+        currentFieldIndex = fields.findIndex(f => f.id === "confirmPassword");
+        askNextField();
+      });
+      return;
+    }
+    speak("Thank you! Your registration is complete.", () => {
+      document.getElementById("status").innerText = "✅ Registration completed!";
+    });
+    return;
+  }
+  const field = fields[currentFieldIndex];
+  document.getElementById("status").innerText = "Listening: " + (questions[document.getElementById("language").value][field.id] || field.id);
+  speak(field.id, () => {
+    if (recognition) {
+      try {
+        recognition.abort();
+        recognition.start();
+      } catch (e) {
+        console.error("Error restarting recognition:", e);
+      }
+    }
+  });
+}
+
+function startVoiceRegistration() {
+  currentFieldIndex = 0;
+  ["name", "age", "email", "phone", "password", "confirmPassword"].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.value = "";
+  });
+  document.getElementsByName("gender").forEach(opt => opt.checked = false);
+  document.getElementById("status").innerText = "";
+  speak("Welcome to voice registration.", askNextField);
+}
+
+function handleSubmit() {
+  const data = {
+    name: document.getElementById("name").value.trim(),
+    age: document.getElementById("age").value.trim(),
+    gender: getGender(),
+    email: document.getElementById("email").value.trim(),
+    contact: document.getElementById("country_code").value + document.getElementById("phone").value.trim(),
+    password: document.getElementById("password").value,
+    confirmPassword: document.getElementById("confirmPassword").value,
+  };
+
+  for (let field of fields) {
+    const val = field.id === "gender" ? data.gender
+      : field.id === "contact" ? data.contact
+      : document.getElementById(field.id).value.trim();
+    if (!field.validate(val)) {
+      alert("Please correct the field: " + field.id);
+      return;
+    }
+  }
+  if (document.getElementById("phone").value.trim().length !== 10) {
+    alert("Mobile number must have 10 digits.");
+    return;
+  }
+  if (data.password !== data.confirmPassword) {
+    alert("Passwords do not match.");
+    return;
+  }
+
+const summary = `Name: ${data.name}
+Age: ${data.age}
+Gender: ${data.gender.charAt(0).toUpperCase() + data.gender.slice(1)}
+Email: ${data.email}
+Contact Number: ${data.contact}
+Caution:
+Click Yes to submit and click No to reload the page. 
+If you click No, the page will reload and you
+have to fill the details from the beginning.`;
+
+  const modalOverlay = document.getElementById("modalOverlay");
+  const modalContent = document.getElementById("modalContent");
+  modalContent.textContent = summary;
+  modalOverlay.style.display = "flex";
+
+  document.getElementById("btnYes").onclick = () => {
+    modalOverlay.style.display = "none";
+    alert("✅ Registration submitted successfully!");
+  };
+  document.getElementById("btnNo").onclick = () => {
+    modalOverlay.style.display = "none";
+    location.reload();
+  };
+}
+</script>
+</body>
+</html>
