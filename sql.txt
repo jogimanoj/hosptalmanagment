@@ -1,0 +1,109 @@
+***to create a table ***
+CREATE TABLE Patient(Name varchar(20),Age int,Gender varchar(10),Patient_Id varchar(10),Email varchar(20),Contact_no int);
+
+
+***to add column****
+ALTER TABLE admin  ADD COLUMN admin_id VARCHAR(20) PRIMARY KEY;
+
+****to show the created table for on table*** 
+ show columns from patient;
+
+
+****to modify***
+ALTER TABLE doctor MODIFY Name VARCHAR(50);
+
+ALTER TABLE Address  MODIFY Address varchar(50) NOT NULL;
+ALTER TABLE Laboratory 
+MODIFY Registration_Id VARCHAR(8) NOT NULL,
+ADD primary key (Registration_Id);
+
+ ***to add unique***
+ALTER TABLE doctor ADD UNIQUE (contact);
+
+ALTER TABLE hospital_staff CHANGE street address VARCHAR(50);
+
+ ****to create  table****
+CREATE TABLE address(
+    address     VARCHAR(50),
+    city        VARCHAR(50),
+    state       VARCHAR(50),
+    landmark    VARCHAR(50),
+    pincode     VARCHAR(6)
+);
+
+
+foreign key
+
+CREATE TABLE lab_address (
+    address_id INT AUTO_INCREMENT PRIMARY KEY,
+    address     VARCHAR(50),
+    city        VARCHAR(50),
+    state       VARCHAR(50),
+    landmark    VARCHAR(50),
+    pincode     VARCHAR(6)
+);
+
+
+ALTER TABLE Laboratory
+ADD COLUMN lab_address INT,
+ADD CONSTRAINT fk_address
+    FOREIGN KEY (lab_address)
+    REFERENCES address(lab_address)
+    ON DELETE SET NULL
+    ON UPDATE CASCADE;
+
+
+
+Run this to check the constraint name:
+
+SHOW INDEX FROM your_table_name WHERE Non_unique = 0;
+
+
+
+SHOW INDEX FROM hospital_staff WHERE Non_unique = 0;
+
+This will show you all UNIQUE indexes, including their names (usually under the Key_name column).
+
+ALTER TABLE hospital_staff DROP INDEX Email;
+
+
+CREATE TABLE admin (
+    username     VARCHAR(50) NOT NULL PRIMARY KEY,
+    password     VARCHAR(50) NOT NULL, 
+    email        VARCHAR(100) ,
+    full_name    VARCHAR(100),
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+password,user name
+
+
+
+to drop a columns in table 
+ALTER TABLE admin DROP COLUMN User_name;
+
+
+to modify to not null
+ALTER TABLE Address  MODIFY Address varchar(50) NOT NULL;
+
+ALTER TABLE admin
+MODIFY COLUMN password VARCHAR(20);
+ALTER TABLE admin
+ADD CONSTRAINT chk_password_length 
+CHECK (CHAR_LENGTH(password) >= 6);
+   
+
+ *****to insert values 
+INSERT INTO address (Address, city, state, landmark, Pincode)
+VALUES 
+('123 Main Street', 'Bangalore', 'Karnataka', 'Near City Mall', 560001),
+('45 Park Avenue', 'Mumbai', 'Maharashtra', 'Opp. Metro Station', 400001),
+('7th Cross Road', 'Chennai', 'Tamil Nadu', 'Near Tech Park', 600001);
+
+
+
+
+***to see table 
+select * from address;
+
